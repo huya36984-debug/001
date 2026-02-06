@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ngữ văn THPT – Kết nối tri thức</title>
+
+<style>
+:root{
+  --bg:#f3f4f8;
+  --card:rgba(255,255,255,.8);
+  --accent:#6b4eff;
+  --border:rgba(0,0,0,.08);
+}
+
+body{
+  margin:0;
+  padding:20px;
+  font-family:"Segoe UI",system-ui;
+  background:linear-gradient(180deg,#eef1ff,#f8f9ff);
+}
+
+h1{
+  text-align:center;
+  font-size:clamp(20px,4vw,32px);
+}
+
+.top{
+  text-align:center;
+  margin:20px 0;
+}
+
+button{
+  padding:10px 18px;
+  border-radius:14px;
+  border:none;
+  background:var(--accent);
+  color:white;
+  font-size:clamp(14px,3vw,16px);
+  cursor:pointer;
+}
+
+.card{
+  background:var(--card);
+  backdrop-filter:blur(6px);
+  border-radius:18px;
+  padding:18px;
+  margin-bottom:20px;
+  box-shadow:0 10px 28px rgba(0,0,0,.08);
+}
+
+.grade{
+  text-align:center;
+  font-weight:700;
+  font-size:clamp(18px,4vw,22px);
+  cursor:pointer;
+}
+
+.lesson{
+  margin-top:14px;
+  padding:12px;
+  border-radius:14px;
+  background:#e8ecff;
+  font-weight:600;
+  cursor:pointer;
+}
+
+.text{
+  margin:10px 0 0 16px;
+  padding:10px;
+  border-radius:12px;
+  background:#f4f6ff;
+  cursor:pointer;
+}
+
+.box{
+  overflow:hidden;
+  max-height:0;
+  opacity:0;
+  transition:.4s ease;
+}
+
+.box.show{
+  max-height:3000px;
+  opacity:1;
+}
+
+.option{
+  margin:6px 0 0 32px;
+  font-size:clamp(13px,3vw,15px);
+}
+
+.option input[type=text]{
+  width:70%;
+  padding:5px;
+  margin-top:4px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>📚 Ngữ văn THPT – Kết nối tri thức</h1>
+
+<div class="top">
+  <button id="modeBtn">🎓 Chế độ: Học sinh</button>
+</div>
+
+<div id="app"></div>
+
+<script>
+/* ===== MODE ===== */
+let MODE = "student";
+
+/* ===== OPTIONS ===== */
+const OPTIONS = [
+ {key:"author",label:"👤 Tác giả"},
+ {key:"work",label:"📘 Tác phẩm"},
+ {key:"video",label:"🎥 Video"},
+ {key:"practice",label:"📝 Ôn tập"}
+];
+
+/* ===== DATA ===== */
+const DATA = {
+10:{
+ "Bài 1: Thần thoại":["Thần Trụ Trời","Đăm Săn"],
+ "Bài 2: Truyện":["Chữ người tử tù","Hai đứa trẻ"]
+},
+11:{
+ "Bài 1: Truyện ngắn":["Chí Phèo","Vợ chồng A Phủ"]
+},
+12:{
+ "Bài 1: Thơ":["Tây Tiến","Đàn ghi ta của Lor-ca"]
+}
+};
+
+/* ===== STORAGE ===== */
+const links = JSON.parse(localStorage.getItem("links")||"{}");
+const config = JSON.parse(localStorage.getItem("config")||"{}");
+
+/* ===== RENDER ===== */
+const app=document.getElementById("app");
+const modeBtn=document.getElementById("modeBtn");
+
+modeBtn.onclick=()=>{
+ MODE=MODE==="student"?"teacher":"student";
+ modeBtn.textContent=MODE==="student"?"🎓 Chế độ: Học sinh":"🧑‍🏫 Chế độ: Giáo viên";
+ render();
+};
+
+function toggle(box){
+ box.classList.toggle("show");
+}
+
+function render(){
+ app.innerHTML="";
+ for(const grade in DATA){
+  const card=document.createElement("div");
+  card.className="card";
+
+  const g=document.createElement("div");
+  g.className="grade";
+  g.textContent="📖 Lớp "+grade;
+
+  const gBox=document.createElement("div");
+  gBox.className="box";
+
+  g.onclick=()=>toggle(gBox);
+
+  for(const lesson in DATA[grade]){
+   const l=document.createElement("div");
+   l.className="lesson";
+   l.textContent=lesson;
+
+   const lBox=document.createElement("div");
+   lBox.className="box";
+
+   l.onclick=(e)=>{e.stopPropagation();toggle(lBox);};
+
+   DATA[grade][lesson].forEach(text=>{
+    const t=document.createElement("div");
+    t.className="text";
+    t.textContent="📘 "+text;
+
+    const oBox=document.createElement("div");
+    oBox.className="box";
+
+    t.onclick=(e)=>{e.stopPropagation();toggle(oBox);};
+
+    const key=`${grade}-${lesson}-${text}`;
+    links[key]??={};
+    config[key]??=OPTIONS.map(o=>o.key);
+
+    OPTIONS.forEach(o=>{
+     if(MODE==="student" && !config[key].includes(o.key))return;
+
+     const row=document.createElement("div");
+     row.className="option";
+     row.onclick=e=>e.stopPropagation();
+
+     if(MODE==="teacher"){
+      row.innerHTML=`
+       <label>
+        <input type="checkbox" ${config[key].includes(o.key)?"checked":""}> ${o.label}
+       </label><br>
+       <input type="text" value="${links[key][o.key]||""}" placeholder="Nhập link">
+      `;
+      const cb=row.querySelector("input[type=checkbox]");
+      const inp=row.querySelector("input[type=text]");
+
+      cb.onchange=()=>{
+       config[key]=cb.checked
+        ?[...new Set([...config[key],o.key])]
+        :config[key].filter(k=>k!==o.key);
+       localStorage.setItem("config",JSON.stringify(config));
+      };
+
+      inp.onchange=()=>{
+       links[key][o.key]=inp.value.trim();
+       localStorage.setItem("links",JSON.stringify(links));
+      };
+     }else{
+      row.innerHTML=links[key][o.key]
+       ?`<a href="${links[key][o.key]}" target="_blank">${o.label}</a>`
+       :`<span style="opacity:.5">${o.label}</span>`;
+     }
+     oBox.appendChild(row);
+    });
+
+    lBox.appendChild(t);
+    lBox.appendChild(oBox);
+   });
+
+   gBox.appendChild(l);
+   gBox.appendChild(lBox);
+  }
+
+  card.appendChild(g);
+  card.appendChild(gBox);
+  app.appendChild(card);
+ }
+}
+
+render();
+</script>
+
+</body>
+</html>
