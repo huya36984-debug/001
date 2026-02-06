@@ -7,71 +7,71 @@
 
 <style>
 :root{
-  --bg:#f3f4f8;
-  --card:rgba(255,255,255,.8);
-  --accent:#6b4eff;
-  --border:rgba(0,0,0,.08);
+  --bg:#f2f4f8;
+  --card:rgba(255,255,255,.82);
+  --accent:#5b6fd6;
+  --text:#1f2937;
 }
+
+*{box-sizing:border-box}
 
 body{
   margin:0;
-  padding:20px;
   font-family:"Segoe UI",system-ui;
-  background:linear-gradient(180deg,#eef1ff,#f8f9ff);
+  background:var(--bg);
+  color:var(--text);
+  padding:16px;
 }
 
 h1{
   text-align:center;
-  font-size:clamp(20px,4vw,32px);
+  font-size:clamp(22px,4vw,32px);
+  margin-bottom:12px;
 }
 
 .top{
-  text-align:center;
-  margin:20px 0;
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:16px;
 }
 
 button{
-  padding:10px 18px;
-  border-radius:14px;
   border:none;
-  background:var(--accent);
-  color:white;
-  font-size:clamp(14px,3vw,16px);
+  border-radius:14px;
+  padding:8px 14px;
+  font-size:14px;
   cursor:pointer;
+  background:var(--accent);
+  color:#fff;
 }
 
 .card{
   background:var(--card);
-  backdrop-filter:blur(6px);
+  backdrop-filter:blur(8px);
   border-radius:18px;
-  padding:18px;
-  margin-bottom:20px;
+  padding:14px;
+  margin-bottom:18px;
   box-shadow:0 10px 28px rgba(0,0,0,.08);
 }
 
 .grade{
   text-align:center;
   font-weight:700;
-  font-size:clamp(18px,4vw,22px);
+  font-size:clamp(18px,3.5vw,22px);
   cursor:pointer;
 }
 
-.lesson{
-  margin-top:14px;
-  padding:12px;
-  border-radius:14px;
-  background:#e8ecff;
-  font-weight:600;
-  cursor:pointer;
-}
-
-.text{
-  margin:10px 0 0 16px;
-  padding:10px;
+.lesson, .text{
+  margin-top:10px;
+  padding:10px 14px;
   border-radius:12px;
-  background:#f4f6ff;
   cursor:pointer;
 }
+
+.lesson{background:#e6ecff;font-weight:600}
+.text{background:#f4f6fb;margin-left:12px}
 
 .box{
   overflow:hidden;
@@ -81,20 +81,22 @@ button{
 }
 
 .box.show{
-  max-height:3000px;
+  max-height:2000px;
   opacity:1;
 }
 
 .option{
-  margin:6px 0 0 32px;
-  font-size:clamp(13px,3vw,15px);
+  margin:6px 0 6px 24px;
+  font-size:14px;
 }
 
 .option input[type=text]{
-  width:70%;
-  padding:5px;
+  width:100%;
+  padding:6px;
   margin-top:4px;
 }
+
+a{color:var(--accent);text-decoration:none}
 </style>
 </head>
 
@@ -103,7 +105,8 @@ button{
 <h1>📚 Ngữ văn THPT – Kết nối tri thức</h1>
 
 <div class="top">
-  <button id="modeBtn">🎓 Chế độ: Học sinh</button>
+  <button id="modeBtn">🎓 Học sinh</button>
+  <button id="shareBtn" style="display:none">🔗 Tạo link chia sẻ</button>
 </div>
 
 <div id="app"></div>
@@ -114,131 +117,124 @@ let MODE = "student";
 
 /* ===== OPTIONS ===== */
 const OPTIONS = [
- {key:"author",label:"👤 Tác giả"},
- {key:"work",label:"📘 Tác phẩm"},
- {key:"video",label:"🎥 Video"},
- {key:"practice",label:"📝 Ôn tập"}
+  {key:"author",label:"👤 Giới thiệu tác giả"},
+  {key:"work",label:"📘 Giới thiệu tác phẩm"},
+  {key:"video",label:"🎥 Video bài học"},
+  {key:"practice",label:"📝 Câu hỏi ôn tập"}
 ];
 
-/* ===== DATA ===== */
-const DATA = {
-10:{
- "Bài 1: Thần thoại":["Thần Trụ Trời","Đăm Săn"],
- "Bài 2: Truyện":["Chữ người tử tù","Hai đứa trẻ"]
-},
-11:{
- "Bài 1: Truyện ngắn":["Chí Phèo","Vợ chồng A Phủ"]
-},
-12:{
- "Bài 1: Thơ":["Tây Tiến","Đàn ghi ta của Lor-ca"]
-}
+/* ===== DATA KHUNG (KHÔNG LINK) ===== */
+const STRUCTURE = {
+  12:{
+    "Bài 1: Khả năng lớn lao của tiểu thuyết":[
+      "Xuân Tóc Đỏ cứu quốc","Nỗi buồn chiến tranh"
+    ],
+    "Bài 2: Những thế giới thơ":[
+      "Cảm hoài","Tây Tiến","Đàn ghi ta của Lor-ca"
+    ]
+  }
 };
 
-/* ===== STORAGE ===== */
-const links = JSON.parse(localStorage.getItem("links")||"{}");
-const config = JSON.parse(localStorage.getItem("config")||"{}");
+/* ===== LOAD DATA FROM URL ===== */
+let DATA_LINKS = {};
+const hash = location.hash;
+if(hash.startsWith("#DATA=")){
+  try{
+    DATA_LINKS = JSON.parse(decodeURIComponent(atob(hash.slice(6))));
+  }catch(e){}
+}
 
-/* ===== RENDER ===== */
-const app=document.getElementById("app");
-const modeBtn=document.getElementById("modeBtn");
+/* ===== UI ===== */
+const app = document.getElementById("app");
+const modeBtn = document.getElementById("modeBtn");
+const shareBtn = document.getElementById("shareBtn");
 
-modeBtn.onclick=()=>{
- MODE=MODE==="student"?"teacher":"student";
- modeBtn.textContent=MODE==="student"?"🎓 Chế độ: Học sinh":"🧑‍🏫 Chế độ: Giáo viên";
- render();
+modeBtn.onclick = ()=>{
+  MODE = MODE==="student"?"teacher":"student";
+  modeBtn.textContent = MODE==="student"?"🎓 Học sinh":"🧑‍🏫 Giáo viên";
+  shareBtn.style.display = MODE==="teacher"?"inline-block":"none";
+  render();
+};
+
+shareBtn.onclick = ()=>{
+  const encoded = btoa(encodeURIComponent(JSON.stringify(DATA_LINKS)));
+  const url = location.origin + location.pathname + "#DATA=" + encoded;
+  prompt("🔗 Copy link này để chia sẻ:",url);
 };
 
 function toggle(box){
- box.classList.toggle("show");
+  box.classList.toggle("show");
 }
 
+/* ===== RENDER ===== */
 function render(){
- app.innerHTML="";
- for(const grade in DATA){
-  const card=document.createElement("div");
-  card.className="card";
+  app.innerHTML="";
+  for(const grade in STRUCTURE){
+    const card=document.createElement("div");
+    card.className="card";
 
-  const g=document.createElement("div");
-  g.className="grade";
-  g.textContent="📖 Lớp "+grade;
+    const g=document.createElement("div");
+    g.className="grade";
+    g.textContent="📖 Lớp "+grade;
 
-  const gBox=document.createElement("div");
-  gBox.className="box";
+    const gbox=document.createElement("div");
+    gbox.className="box";
+    g.onclick=()=>toggle(gbox);
 
-  g.onclick=()=>toggle(gBox);
+    for(const lesson in STRUCTURE[grade]){
+      const l=document.createElement("div");
+      l.className="lesson";
+      l.textContent=lesson;
 
-  for(const lesson in DATA[grade]){
-   const l=document.createElement("div");
-   l.className="lesson";
-   l.textContent=lesson;
+      const lbox=document.createElement("div");
+      lbox.className="box";
+      l.onclick=()=>toggle(lbox);
 
-   const lBox=document.createElement("div");
-   lBox.className="box";
+      STRUCTURE[grade][lesson].forEach(text=>{
+        const t=document.createElement("div");
+        t.className="text";
+        t.textContent="📘 "+text;
 
-   l.onclick=(e)=>{e.stopPropagation();toggle(lBox);};
+        const obox=document.createElement("div");
+        obox.className="box";
+        t.onclick=()=>toggle(obox);
 
-   DATA[grade][lesson].forEach(text=>{
-    const t=document.createElement("div");
-    t.className="text";
-    t.textContent="📘 "+text;
+        const key=`${grade}-${lesson}-${text}`;
+        DATA_LINKS[key] ||= {};
 
-    const oBox=document.createElement("div");
-    oBox.className="box";
+        OPTIONS.forEach(opt=>{
+          const row=document.createElement("div");
+          row.className="option";
 
-    t.onclick=(e)=>{e.stopPropagation();toggle(oBox);};
+          if(MODE==="teacher"){
+            row.innerHTML=`
+              ${opt.label}
+              <input type="text" placeholder="Nhập link..."
+              value="${DATA_LINKS[key][opt.key]||""}">
+            `;
+            row.querySelector("input").oninput=e=>{
+              DATA_LINKS[key][opt.key]=e.target.value.trim();
+            };
+          }else{
+            const link=DATA_LINKS[key][opt.key];
+            row.innerHTML=link?`<a href="${link}" target="_blank">${opt.label}</a>`:`<span style="opacity:.4">${opt.label}</span>`;
+          }
 
-    const key=`${grade}-${lesson}-${text}`;
-    links[key]??={};
-    config[key]??=OPTIONS.map(o=>o.key);
+          obox.appendChild(row);
+        });
 
-    OPTIONS.forEach(o=>{
-     if(MODE==="student" && !config[key].includes(o.key))return;
+        lbox.appendChild(t);
+        lbox.appendChild(obox);
+      });
 
-     const row=document.createElement("div");
-     row.className="option";
-     row.onclick=e=>e.stopPropagation();
+      gbox.appendChild(l);
+      gbox.appendChild(lbox);
+    }
 
-     if(MODE==="teacher"){
-      row.innerHTML=`
-       <label>
-        <input type="checkbox" ${config[key].includes(o.key)?"checked":""}> ${o.label}
-       </label><br>
-       <input type="text" value="${links[key][o.key]||""}" placeholder="Nhập link">
-      `;
-      const cb=row.querySelector("input[type=checkbox]");
-      const inp=row.querySelector("input[type=text]");
-
-      cb.onchange=()=>{
-       config[key]=cb.checked
-        ?[...new Set([...config[key],o.key])]
-        :config[key].filter(k=>k!==o.key);
-       localStorage.setItem("config",JSON.stringify(config));
-      };
-
-      inp.onchange=()=>{
-       links[key][o.key]=inp.value.trim();
-       localStorage.setItem("links",JSON.stringify(links));
-      };
-     }else{
-      row.innerHTML=links[key][o.key]
-       ?`<a href="${links[key][o.key]}" target="_blank">${o.label}</a>`
-       :`<span style="opacity:.5">${o.label}</span>`;
-     }
-     oBox.appendChild(row);
-    });
-
-    lBox.appendChild(t);
-    lBox.appendChild(oBox);
-   });
-
-   gBox.appendChild(l);
-   gBox.appendChild(lBox);
+    card.appendChild(g);
+    card.appendChild(gbox);
+    app.appendChild(card);
   }
-
-  card.appendChild(g);
-  card.appendChild(gBox);
-  app.appendChild(card);
- }
 }
 
 render();
